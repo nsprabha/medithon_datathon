@@ -1,0 +1,70 @@
+#include <Wire.h>            // For I2C communication
+#include <RTClib.h>          // For the RTC DS3231 module
+#include <Adafruit_NeoPixel.h> // For WS2812B RGB LEDs
+
+#define IR_SENSOR_PIN A0      // Analog pin connected to the IR sensor
+#define NUM_LEDS 8            // Number of RGB LEDs
+#define LED_PIN 5             // Pin connected to the RGB LEDs
+
+RTC_DS3231 rtc;               // Initialize the RTC module
+Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
+
+int fixedDistance = 100;       // Pre-defined distance in cm
+bool distanceFixed = false;
+
+void setup() {
+  Serial.begin(115200);
+  
+  // Initialize the IR sensor pin
+  pinMode(IR_SENSOR_PIN, INPUT);
+  
+  // Initialize the RGB LEDs
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
+  
+  // Initialize the RTC module
+  if (!rtc.begin()) {
+    Serial.println("Couldn't find RTC");
+    while (1);
+  }
+  
+  if (rtc.lostPower()) {
+    // The RTC is not set, so set it to the current time
+    rtc.adjust(DateTime(F(_DATE), F(TIME_)));
+  }
+}
+
+void loop() {
+  // Read the distance from the IR sensor
+  int sensorValue = analogRead(IR_SENSOR_PIN);
+  int distance = map(sensorValue, 0, 1023, 0, 200); // Adjust this based on the sensor range
+
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  if (distance <= fixedDistance && !distanceFixed) {
+    distanceFixed = true; // Mark that distance is fixed
+
+    // Record the time and distance
+    DateTime now = rtc.now();
+    Serial.println("Distance fixed!");
+    Serial.print("Time: ");
+    Serial.print(now.hour());
+    Serial.print(':');
+    Serial.print(now.minute());
+    Serial.print(':');
+    Serial.println(now.second());
+    
+    Serial.print("Distance: ");
+    Serial.println(distance);
+    
+    // Glow the 8 RGB LEDs green
+    for (int i = 0; i < NUM_LEDS; i++) {
+      strip.setPixelColor(i, strip.Color(0, 255, 0)); // Green color
+    }
+    strip.show(); // Update the LEDs
+  }
+  
+  delay(500); // Delay for stability
+}
