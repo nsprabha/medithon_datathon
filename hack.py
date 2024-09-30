@@ -53,15 +53,21 @@ def main():
 
     # Initialize or get the existing dataframe
     if 'df' not in st.session_state:
-        st.session_state.df = pd.DataFrame(columns=['Milliliters', 'Insulin Units'])
+        st.session_state.df = pd.DataFrame(columns=['Insulin Units'])  # Only 'Insulin Units' now
 
     # Input for milliliters
     ml_input = st.number_input("Enter milliliters (mL)", min_value=0.0, step=0.1)
 
     if st.button("Add Entry"):
         insulin_units = ml_input * 100
-        new_row = pd.DataFrame({'Milliliters': [ml_input], 'Insulin Units': [insulin_units]})
+        # Get the next available day index
+        next_day_index = len(st.session_state.df) + 1  # Add 1 for a human-friendly starting day
+        # Create the new row
+        new_row = pd.DataFrame({'Insulin Units': [insulin_units]})
         st.session_state.df = pd.concat([st.session_state.df, new_row], ignore_index=True)
+
+        # Add the 'Days' column after the row is added
+        st.session_state.df['Days'] = range(1, len(st.session_state.df) + 1)
 
     # Display the dataframe
     st.write(st.session_state.df)
@@ -74,15 +80,19 @@ def main():
     if total_insulin > 400:
         st.warning("Warning: Your total insulin intake exceeds the recommended 400 units per day!")
 
-    # Create a graph
     if not st.session_state.df.empty:
         plt.figure(figsize=(10, 6))
-        plt.plot(st.session_state.df['Milliliters'], st.session_state.df['Insulin Units'], marker='o')
-        plt.title('Insulin Units vs Milliliters')
-        plt.xlabel('Milliliters (mL)')
+        # Plot against 'Days' column
+        plt.plot(st.session_state.df['Days'], st.session_state.df['Insulin Units'], marker='o')
+        plt.title('Insulin Units vs Day')
+        plt.xlabel('Day')  # Correct label to 'Day'
         plt.ylabel('Insulin Units')
         plt.grid(True)
+
+        # Set x-axis ticks (1 to 7)
+        plt.xticks(range(1, len(st.session_state.df) + 1))  # Ensure x-axis covers all days
         st.pyplot(plt)
+ 
 
 
 # Main app logic
